@@ -1,0 +1,785 @@
+PROJECT: FLO STUDIO
+MILESTONES: M6, M7, M8
+ENVIRONMENT: Existing Google AI Studio project and its current Android application architecture.
+
+IMPORTANT: This is a continuation of an existing project. Do not create a new application, replace the current architecture unnecessarily, or remove existing functionality.
+
+==================================================
+PROJECT CONTEXT
+==================================================
+
+Flo Studio is an Android-focused automatic instrumental music composition application.
+
+The application already has implementations for M1–M5, including:
+
+M1: Music studio foundation, landscape interface, piano roll, playback infrastructure, project persistence, and a video-recording architecture.
+
+M2: Automatic music composition with keys, scales, BPM, time signatures, complexity settings, deterministic seeds, melody, chords, bass, rhythm, layer regeneration, and musical variations.
+
+M3: Locally synthesized instruments, PCM audio playback, voice pooling, ADSR envelopes, reverb, and instrument sound-design controls.
+
+M4: Creator presets, preset browsing, and locally saved custom presets.
+
+M5: Automatic song arrangements, section planning, track gating, velocity changes, and volume automation.
+
+The reported implementation has passed unit tests and compiled successfully. However, actual device functionality must still be validated.
+
+The target device is:
+
+- Device: TECNO Camon 20
+- Operating system: Android 14
+- RAM: 8 GB
+- Processor: MediaTek Helio G85
+- Graphics: Mali-G52 MC2
+
+The project must prioritize reliability, low memory consumption, responsive interaction, and efficient local processing.
+
+The application should work offline for its core music creation and export features wherever Android permits.
+
+Do not introduce mandatory cloud services, subscriptions, paid APIs, large machine-learning models, or external audio asset downloads.
+
+==================================================
+GLOBAL IMPLEMENTATION RULES
+==================================================
+
+1. Inspect the existing project files before modifying anything.
+
+2. Identify the actual programming language, framework, audio engine, playback scheduler, piano-roll implementation, project data models, persistence system, video-rendering code, and build configuration.
+
+3. Reuse existing components and services whenever possible.
+
+4. Do not blindly assume that a feature exists simply because a previous milestone report claims it does. Inspect its implementation.
+
+5. Preserve all working M1–M5 functionality.
+
+6. Do not redesign the entire user interface.
+
+7. Preserve the existing dark, professional, DAW-inspired interface.
+
+8. THE APPLICATION WORKSPACE MUST REMAIN LANDSCAPE.
+
+9. The exported video's aspect ratio must remain independent of the application's orientation.
+
+10. Support:
+    - 9:16 vertical video for TikTok, Instagram Reels, and YouTube Shorts.
+    - 16:9 landscape video for YouTube.
+
+11. Do not replace the existing locally synthesized audio engine with prerecorded samples or a cloud-based music-generation service.
+
+12. Never claim that a feature works unless its implementation and tests support that conclusion.
+
+13. Implement the milestones in order:
+    M6, then M7, then M8.
+
+14. Run appropriate tests and builds after meaningful changes.
+
+15. Fix discovered compilation errors and regressions before proceeding.
+
+16. Do not delete existing features to make the build pass.
+
+17. Do not implement fake export buttons, placeholder success messages, simulated file downloads, or video files without genuine synchronized audio.
+
+18. Keep the application usable on the target phone.
+
+==================================================
+MILESTONE 6: AUDIO AND MIDI EXPORT
+==================================================
+
+OBJECTIVE:
+
+Allow users to export the music they create in Flo Studio as genuine audio files and MIDI files.
+
+PART A: AUDIO EXPORT
+
+Implement reliable audio export using the existing synthesis engine.
+
+Required formats:
+
+1. WAV:
+   - Uncompressed PCM audio.
+   - Prefer 44.1 kHz.
+   - Use a supported PCM bit depth, preferably 16-bit.
+   - Write a valid WAV header with correct sample rate, channel count, bit depth, and data length.
+
+2. MP3, if a reliable, legally usable, offline encoder can be integrated without excessive application size or complexity.
+
+   If MP3 requires an unsuitable dependency, prioritize WAV and explain the limitation rather than adding a fragile implementation.
+
+Audio export requirements:
+
+- Export the actual generated composition.
+- Include every enabled musical track.
+- Respect track mute and solo states.
+- Respect instrument assignments.
+- Respect tempo and time signature.
+- Respect note timing and velocity.
+- Respect note duration and release envelopes.
+- Respect arrangement sections.
+- Respect track volume and supported automation.
+- Include the effects already supported by the audio engine.
+- Preserve the correct musical duration.
+- Avoid clipping where practical.
+- Avoid unintended silence at the beginning or end.
+- Ensure that the final notes and instrument release tails are not abruptly cut off.
+- Ensure that the exported audio is not empty or silent when the project contains audible notes.
+- Avoid missing notes, duplicate notes, and timing drift.
+- Keep export rendering separate from the real-time playback thread.
+
+CRITICAL:
+
+Do not simply record whatever happens to be coming from the device speakers.
+
+Prefer an offline rendering path that renders the composition through the same synthesis engine used by playback.
+
+If the existing engine cannot render offline, introduce the smallest practical extension that allows deterministic rendering without breaking real-time playback.
+
+The exported sound should match the composition users hear when playing the project.
+
+PART B: EXPORT CONTROLS
+
+Create an export interface consistent with the existing Flo Studio design.
+
+Include:
+
+- Export Audio.
+- WAV format selection.
+- MP3 selection only if genuinely supported.
+- Export progress.
+- Cancel export where safely possible.
+- Success and failure feedback.
+- Clear error messages.
+- Output file name.
+- Exported duration and file size when available.
+- Share exported file.
+- Open exported file using a compatible Android application where possible.
+
+Use a sensible default filename such as:
+
+FloStudio_ProjectName_2026-10-20.wav
+
+Generate filenames safely and prevent accidental overwriting.
+
+Use Android's appropriate storage mechanisms, such as MediaStore or the Storage Access Framework, according to the existing application architecture.
+
+Do not request broad storage permissions unnecessarily.
+
+Ensure exported files remain accessible to the user.
+
+PART C: MIDI EXPORT
+
+Implement genuine Standard MIDI File export.
+
+Prefer Standard MIDI File format 1 when exporting multiple independent tracks.
+
+Include:
+
+- MIDI tempo events.
+- Time signature events.
+- Track names.
+- Instrument program assignments where applicable.
+- Note-on events.
+- Note-off events.
+- Note velocities.
+- Correct note durations.
+- Simultaneous notes.
+- Separate musical tracks.
+- Correct timing resolution.
+- Correct handling of the supported time signatures.
+
+Represent melody, chords, bass, and rhythm as separate tracks whenever the source composition contains them.
+
+Convert the project's musical timing into valid MIDI ticks.
+
+Make sure notes begin and end at the correct positions.
+
+Prevent negative delta times, invalid event ordering, malformed track lengths, and missing end-of-track events.
+
+Use the correct MIDI program numbers where practical.
+
+Explain any limitations involving custom synthesized timbres that cannot be represented directly in standard MIDI.
+
+The exported MIDI must open in compatible MIDI software.
+
+Do not simply rename a JSON file to .mid.
+
+PART D: EXPORT VALIDATION
+
+Add tests for:
+
+- Valid WAV headers.
+- Correct PCM data lengths.
+- Correct sample rate and channel configuration.
+- Nonempty audio output.
+- Audible sample generation when the composition contains audible notes.
+- Proper handling of empty compositions.
+- MIDI file signatures.
+- Valid MIDI track structure.
+- Tempo and time signature events.
+- Note-on and note-off pairing.
+- Correct conversion of note timing.
+- Multi-track export.
+- Long compositions.
+- Export cancellation and failure handling.
+
+Where practical, test that the exported audio duration corresponds to the arrangement's actual duration, allowing for note-release tails.
+
+==================================================
+MILESTONE 7: SYNCHRONIZED PIANO-ROLL VIDEO EXPORT
+==================================================
+
+OBJECTIVE:
+
+Create genuine MP4 videos of the music playing across the piano roll, with synchronized audio.
+
+This is a central feature of Flo Studio.
+
+The final videos should be suitable for publishing on TikTok, Reels, Shorts, and YouTube.
+
+PART A: VIDEO EXPORT OPTIONS
+
+Provide two independent export formats:
+
+OPTION 1: VERTICAL VIDEO
+
+Aspect ratio: 9:16
+
+Preferred resolution: 720 × 1280.
+
+Purpose:
+TikTok, Instagram Reels, YouTube Shorts, and other vertical video platforms.
+
+OPTION 2: LANDSCAPE VIDEO
+
+Aspect ratio: 16:9
+
+Preferred resolution: 1280 × 720.
+
+Purpose:
+YouTube and landscape music demonstrations.
+
+Keep the application workspace in landscape orientation throughout both workflows.
+
+Do not rotate the entire application into portrait mode just because the user selected a vertical video.
+
+PART B: PIANO-ROLL VISUALIZATION
+
+The exported video must display a recognizable musical piano roll.
+
+Show:
+
+- A horizontal musical timeline.
+- Piano keys or an equivalent recognizable pitch reference.
+- Musical notes and chords arranged at their actual time and pitch positions.
+- The vertical playback playhead.
+- Grid lines.
+- The current musical position where practical.
+- A tasteful dark DAW-inspired visual design.
+- Optional composition title.
+- Optional BPM and musical key information.
+- Optional track names.
+
+The music must play while the piano-roll animation progresses.
+
+CRITICAL VISUAL REQUIREMENT:
+
+The vertical playhead must travel horizontally across the musical timeline as the music plays.
+
+Do not implement falling notes as the primary visualization.
+
+Do not replace the piano roll with a generic waveform or audio spectrum.
+
+Do not display a static piano-roll screenshot while the audio plays.
+
+The animation must represent the actual composition being rendered.
+
+PART C: VERTICAL VIEWPORT TRACKING
+
+For 9:16 export, implement a virtual vertical recording viewport that follows the playhead.
+
+The application workspace remains landscape.
+
+The vertical viewport is an export composition region, not an orientation change.
+
+Requirements:
+
+1. Display a narrow vertical region of the piano roll within the final 9:16 video.
+
+2. Follow the horizontal playback position smoothly.
+
+3. Keep the playhead visible within the exported frame.
+
+4. Show relevant upcoming notes and chords.
+
+5. Keep the pitch reference understandable.
+
+6. Avoid abrupt viewport jumps.
+
+7. Avoid excessive camera movement.
+
+8. Keep the viewport synchronized with the music timeline.
+
+9. Handle the beginning and end of the composition without moving beyond valid timeline boundaries.
+
+10. Handle long arrangements without accumulating timing errors.
+
+11. Ensure the viewport does not become permanently stuck.
+
+12. Ensure the rendered vertical composition is correctly framed and does not contain unintended black bars.
+
+13. Make the framing visually useful even when the piano roll contains notes across several octaves.
+
+For 16:9 export, display a wider portion of the piano roll and let the playhead travel across the visible composition.
+
+Do not stretch the piano roll unnaturally to fill the output.
+
+Use suitable scaling and viewport positioning.
+
+PART D: REAL AUDIO AND VIDEO SYNCHRONIZATION
+
+The exported MP4 MUST contain both video and genuine audio from the composition.
+
+Use the existing locally synthesized audio engine.
+
+Do not create a silent video.
+
+Do not create a separate audio file and falsely report that the video contains it.
+
+Do not rely on screen recording the entire Android interface as the primary rendering method.
+
+Prefer deterministic off-screen rendering of video frames and audio.
+
+Where supported by the existing Android architecture, use:
+
+- Android MediaCodec for H.264 video encoding.
+- Android MediaMuxer to combine encoded video and audio.
+- AAC audio encoding in a format supported by the selected MP4 container.
+- An appropriate audio sample rate and channel configuration.
+- Monotonic presentation timestamps for video and audio.
+- Efficient frame rendering using existing graphics infrastructure where practical.
+
+Use a supported, reliable approach if the existing implementation differs from these technologies.
+
+Synchronization requirements:
+
+1. Audio and video must represent the same musical timeline.
+
+2. The playhead position must be calculated from the rendered musical timeline, not merely from the current wall-clock time.
+
+3. Tempo changes, if supported during a composition, must be represented correctly in the export timeline.
+
+4. Every rendered frame must have an appropriate presentation timestamp.
+
+5. Audio timestamps must progress correctly.
+
+6. The first frame and first audio sample must be aligned appropriately.
+
+7. The encoder must not produce duplicate or out-of-order timestamps.
+
+8. The final audio and video durations must be consistent.
+
+9. Audio must not drift progressively behind or ahead of the animation.
+
+10. Final note releases must not be cut off unexpectedly.
+
+11. Encoder failures must be handled safely.
+
+12. All codecs, muxers, file handles, and temporary resources must be released correctly.
+
+13. Canceling an export must not corrupt the application or permanently lock the export interface.
+
+14. Exporting must not require the user to keep the application screen actively animating if deterministic background or off-screen rendering is practical.
+
+If full background rendering is impractical, clearly explain the limitation and implement the most reliable supported solution.
+
+PART E: EXPORT QUALITY AND USER EXPERIENCE
+
+Add a video export interface with:
+
+- Vertical 9:16 selection.
+- Landscape 16:9 selection.
+- Resolution selection only for genuinely supported output sizes.
+- Output filename.
+- Optional video title.
+- Optional BPM and key overlay.
+- Progress percentage where meaningful.
+- Estimated or elapsed export time where available.
+- Cancel export.
+- Success and failure messages.
+- Share exported video.
+- Open exported video using a compatible application where possible.
+
+The default should favor reliable performance on the Tecno Camon 20.
+
+Do not add expensive visual effects that make the device struggle.
+
+Avoid unnecessary full-resolution intermediate images.
+
+Avoid retaining every frame in memory.
+
+Use streaming or bounded-memory frame processing.
+
+For long arrangements, ensure memory consumption remains bounded.
+
+PART F: VIDEO VALIDATION
+
+Add tests for:
+
+- 9:16 viewport dimensions.
+- 16:9 viewport dimensions.
+- Playhead tracking.
+- Correct framing near the beginning and end.
+- Correct conversion from musical time to video time.
+- Monotonic frame presentation timestamps.
+- Audio/video duration consistency.
+- Encoder cleanup after failure.
+- Cancellation.
+- Output file creation.
+- Correct MP4 container structure.
+
+Where practical, perform an integration test that inspects the resulting MP4 and confirms that it contains both a video stream and an audio stream.
+
+Do not treat a successful encoder initialization as proof of a valid final video.
+
+Do not claim that audio is present until the final muxed output has been verified.
+
+==================================================
+MILESTONE 8: OPTIMIZATION, BUG FIXING, AND DEVICE READINESS
+==================================================
+
+OBJECTIVE:
+
+Make Flo Studio reliable, responsive, and usable on the Tecno Camon 20.
+
+This milestone is not an excuse to remove complex features.
+
+It is an engineering and validation pass over the complete application.
+
+PART A: MEMORY OPTIMIZATION
+
+Inspect:
+
+- Audio voice pooling.
+- Audio buffers.
+- PCM rendering buffers.
+- Piano-roll rendering.
+- Note and event storage.
+- Preset loading.
+- Arrangement generation.
+- WAV export.
+- MIDI export.
+- Video rendering.
+- MediaCodec and MediaMuxer resource management.
+- Temporary export files.
+- Bitmap and graphics allocations.
+- Activity and lifecycle cleanup.
+
+Reduce unnecessary allocations.
+
+Avoid allocating large buffers repeatedly inside real-time audio callbacks.
+
+Reuse buffers where safe.
+
+Avoid retaining full video frames in memory.
+
+Release encoder resources and temporary files after cancellation or failure.
+
+Prevent memory leaks when opening and closing dialogs or switching between screens.
+
+Keep the interface responsive during long exports.
+
+Do not run expensive composition generation, audio rendering, or video rendering on the main UI thread.
+
+PART B: AUDIO RELIABILITY
+
+Inspect the real-time audio path.
+
+Look for:
+
+- Audio glitches.
+- Clicks and pops.
+- Incorrect note timing.
+- Notes that become stuck.
+- Notes that end too early.
+- Notes that continue after playback stops.
+- Voice-pool exhaustion.
+- Excessive polyphony.
+- Incorrect ADSR envelopes.
+- Reverb instability.
+- Volume clipping.
+- Incorrect track muting.
+- Incorrect solo behavior.
+- Instrument changes not taking effect.
+- Incorrect arrangement section transitions.
+- Playback scheduler drift.
+
+Fix actual problems found in the code.
+
+Do not arbitrarily reduce sound quality.
+
+If polyphony limits are necessary, implement sensible limits and graceful voice stealing.
+
+Ensure stopping playback releases active voices.
+
+Ensure changing projects does not leave old notes playing.
+
+Ensure the UI and audio engine agree on playback state.
+
+PART C: COMPOSITION RELIABILITY
+
+Validate:
+
+- Deterministic seed behavior.
+- Key and scale constraints.
+- Musical timing.
+- Chord and melody relationships.
+- Bass alignment.
+- Rhythm generation.
+- Independent layer regeneration.
+- Musical variation.
+- Arrangement section boundaries.
+- Track gating.
+- Volume automation.
+- Preset application.
+- Custom preset persistence.
+- Project persistence.
+- Backward compatibility.
+
+Avoid rewriting the composition engine if targeted fixes are sufficient.
+
+Make sure a regenerated melody does not unintentionally erase the user's chords, bass, or rhythm.
+
+Make sure changing a preset has predictable behavior and does not unexpectedly destroy unrelated project data.
+
+PART D: EXPORT RELIABILITY
+
+Test realistic projects at several lengths:
+
+- 4 bars.
+- 8 bars.
+- 16 bars.
+- 32 bars.
+
+Test different tempos, meters, instruments, and arrangement structures.
+
+Verify:
+
+- WAV output can be opened by compatible software.
+- MIDI output can be opened by compatible software.
+- MP4 output contains both audio and video.
+- Exported durations are reasonable.
+- Audio and animation are synchronized.
+- Output filenames are valid.
+- Files are saved through appropriate Android storage mechanisms.
+- Sharing works with supported Android applications.
+- Export cancellation does not leave corrupted files.
+- Failed exports do not leave the application in a broken state.
+
+Use temporary files carefully and remove incomplete outputs where safe.
+
+Do not delete previously completed exports.
+
+PART E: UI AND INTERACTION TESTING
+
+Test the actual existing interface.
+
+Verify:
+
+- Landscape workspace remains intact.
+- Piano-roll interaction works.
+- Playback controls remain responsive.
+- Instrument selection works.
+- Volume and sound-design controls work.
+- Preset browsing works.
+- Custom presets can be saved and loaded.
+- Arrangement controls work.
+- Export dialogs fit the screen.
+- Long filenames do not break the layout.
+- Export progress is understandable.
+- Back navigation behaves correctly.
+- Android lifecycle changes do not corrupt playback or exports.
+- Errors are displayed in clear language.
+
+Keep the dark professional DAW design consistent.
+
+Do not perform an unnecessary full redesign.
+
+PART F: PERFORMANCE TESTING
+
+Where tooling permits, measure:
+
+- Memory usage during playback.
+- Memory usage during WAV export.
+- Memory usage during MIDI export.
+- Memory usage during MP4 export.
+- Time required to generate compositions.
+- Export duration relative to the composition length.
+- UI responsiveness.
+- Audio stability under realistic load.
+
+Test the largest supported composition lengths.
+
+Test dense arrangements with multiple instruments.
+
+If a feature is too demanding for the target phone, optimize it before removing it.
+
+Use sensible limits and communicate them honestly.
+
+Do not invent benchmark numbers.
+
+If the physical device is unavailable to the build environment, state that device-specific validation remains outstanding.
+
+PART G: AUTOMATED TESTING
+
+Run the existing test suite and add relevant tests.
+
+Include tests covering:
+
+- Music composition.
+- Instrument rendering.
+- Project persistence.
+- Preset persistence.
+- Arrangement planning.
+- WAV export.
+- MIDI export.
+- Video viewport calculations.
+- Video/audio synchronization.
+- Export cancellation.
+- Resource cleanup.
+- Backward compatibility.
+
+Use Robolectric or other existing test infrastructure where appropriate.
+
+Use unit tests for deterministic logic and integration tests for Android-specific components when practical.
+
+Do not make tests pass by weakening meaningful assertions or skipping failed tests without explanation.
+
+PART H: BUILD VALIDATION
+
+Run the appropriate existing Gradle tasks.
+
+At minimum, where supported:
+
+./gradlew :app:testDebugUnitTest
+./gradlew :app:assembleDebug
+
+If the project uses a different module name or build configuration, use the correct existing tasks.
+
+Inspect and resolve compilation errors.
+
+Resolve test failures caused by the implementation.
+
+Do not claim a clean build if the build has not actually completed successfully.
+
+Report any failures that cannot be resolved.
+
+==================================================
+CRITICAL ACCEPTANCE CRITERIA
+==================================================
+
+Flo Studio is not complete merely because the interface displays export buttons.
+
+The implementation must be evaluated against these practical requirements.
+
+M6:
+- A real WAV file can be exported.
+- A real MIDI file can be exported.
+- The files contain the actual project data.
+- The files are structurally valid.
+- Export errors are handled safely.
+
+M7:
+- A real MP4 can be exported.
+- The video shows the actual composition's piano roll.
+- The playhead travels horizontally in synchronization with the music.
+- The vertical viewport follows the playhead in 9:16 mode.
+- The landscape mode displays a wide piano-roll view.
+- The MP4 contains both an audio stream and a video stream.
+- The output plays correctly in compatible media players.
+
+M8:
+- Existing music-generation functionality remains operational.
+- Instruments continue to play correctly.
+- Arrangements and presets remain functional.
+- Export operations do not freeze the interface unnecessarily.
+- Resource cleanup is reliable.
+- Tests and compilation are completed.
+- Device-specific limitations are documented honestly.
+
+==================================================
+IMPLEMENTATION ORDER
+==================================================
+
+Follow this exact order.
+
+STEP 1:
+Inspect the repository and identify the actual state of M1–M5.
+
+STEP 2:
+Implement M6 completely.
+
+STEP 3:
+Run the relevant M6 tests and build checks.
+
+STEP 4:
+Implement M7 using the real audio-rendering and export infrastructure.
+
+STEP 5:
+Verify that MP4 output contains both audio and video streams.
+
+STEP 6:
+Run M7 tests and build checks.
+
+STEP 7:
+Implement M8 optimizations and fix identified regressions across M1–M7.
+
+STEP 8:
+Run the complete available test suite.
+
+STEP 9:
+Build the Android debug APK.
+
+STEP 10:
+Provide an honest implementation report.
+
+Do not stop after writing a plan. Implement the changes in the existing project.
+
+If a step reveals a major blocker, investigate it and fix it where possible rather than silently replacing the intended functionality with a placeholder.
+
+==================================================
+FINAL REPORT REQUIREMENTS
+==================================================
+
+When implementation is finished, report:
+
+1. M6 features implemented.
+2. M7 features implemented.
+3. M8 fixes and optimizations.
+4. Important files changed.
+5. Dependencies added, if any, and why.
+6. Tests actually executed.
+7. Test results.
+8. Whether the debug build succeeded.
+9. Where the generated APK is located, if one was produced.
+10. Where exported WAV, MIDI, and MP4 files are saved.
+11. Whether MP4 audio/video stream verification was actually performed.
+12. Any remaining bugs or limitations.
+13. Which features still require testing on the physical Tecno Camon 20.
+
+Clearly distinguish between:
+
+- Implemented and verified automatically.
+- Implemented but not yet verified on a physical device.
+- Not implemented.
+- Blocked by a technical limitation.
+
+Do not fabricate test results, screenshots, exported files, benchmark figures, or device test results.
+
+FINAL OBJECTIVE:
+
+Complete Flo Studio as a functional, locally powered instrumental music composition and creator-export application.
+
+Users should be able to generate music, customize instruments and arrangements, export audio and MIDI, and produce synchronized 9:16 or 16:9 piano-roll MP4 videos suitable for their content.
+
+Preserve the existing application and its features.
+
+Prioritize real functionality, correct synchronization, reliable exports, and performance on the Tecno Camon 20.

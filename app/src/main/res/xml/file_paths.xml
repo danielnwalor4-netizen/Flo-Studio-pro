@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <external-files-path name="exported_movies" path="Movies" />
+    <external-files-path name="exported_music" path="Music" />
+    <external-files-path name="exported_files" path="." />
+    <cache-path name="cached_movies" path="." />
+    <files-path name="files_movies" path="." />
+</paths>
